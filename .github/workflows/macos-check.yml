@@ -1,20 +1,35 @@
-name: macOS Logic Check
+name: macOS Script Validation
 on: [push]
 
 jobs:
-  run-test:
+  check-macos:
     runs-on: macos-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Get macOS UUID
         id: get_id
         run: |
-          # שליפת ה-UUID של המק כפי שעשית בסקריפט
           UUID=$(ioreg -d2 -c IOPlatformExpertDevice | awk -F\" '/IOPlatformUUID/{print $(NF-1)}')
           echo "MAC_ID=$UUID" >> $GITHUB_ENV
           echo "Found UUID: $UUID"
 
-      - name: Run Test Logic
+      - name: Run JS Logic Test
         run: node test-logic.js
+
+      - name: Connectivity Test (Google Apps Script)
+        run: |
+          # שליחת בקשת דמה לשרת שלך כדי לראות אם הוא מגיב
+          RESPONSE=$(curl -L -s -X POST -H "Content-Type: application/json" \
+            -d '{"license_key":"TEST-KEY", "machine_id":"TEST-ID", "product_code":"IG-ID-01"}' \
+            "https://script.google.com/macros/s/AKfycbxKoNsJd-IYlsRuQVclZ6RvXVhxe8zGnNUdmX7mPCZKJLWAC5nx8QjvhYe_gJhTTLjhQw/exec")
+          
+          echo "Server Response: $RESPONSE"
+          
+          # בדיקה אם התקבלה תגובה שהיא JSON תקין
+          if [[ $RESPONSE == *"success"* ]]; then
+            echo "✅ Server is responding correctly!"
+          else
+            echo "⚠️ Server responded, but not with a standard success/fail JSON. Check your Apps Script logs."
+          fi
