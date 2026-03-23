@@ -1,0 +1,66 @@
+name: Test Mac Activation Flow
+
+on:
+  workflow_dispatch:
+    inputs:
+      license_key:
+        description: 'מפתח רישיון לבדיקה'
+        required: true
+        default: 'YOUR-LICENSE-KEY-HERE'
+
+jobs:
+  test-mac-activation:
+    runs-on: macos-latest
+
+    steps:
+      - name: "1 - קבל Machine ID (כמו שInDesign מקבל)"
+        id: get_machine_id
+        run: |
+          UUID=$(ioreg -d2 -c IOPlatformExpertDevice | awk -F\" '/IOPlatformUUID/{print $(NF-1)}' | tr -d '[:space:]')
+          echo "machine_id=$UUID" >> $GITHUB_OUTPUT
+          echo "=== Machine ID שנוצר ==="
+          echo "$UUID"
+
+      - name: "2 - שלח בקשת אקטיבציה לשרת"
+        id: activation
+        run: |
+          MACHINE_ID="${{ steps.get_machine_id.outputs.machine_id }}"
+          LICENSE_KEY="${{ github.event.inputs.license_key }}"
+          
+          echo "=== שולח לשרת ==="
+          echo "Machine ID: $MACHINE_ID"
+          echo "License Key: $LICENSE_KEY"
+          echo "========================"
+          
+          RESPONSE=$(curl -s -X POST \
+            "https://script.google.com/macros/s/AKfycbxKoNsJd-IYlsRuQVclZ6RvXVhxe8zGnNUdmX7mPCZKJLWAC5nx8QjvhYe_gJhTTLjhQw/exec" \
+            -H "Content-Type: application/json" \
+            -d "{\"license_key\":\"$LICENSE_KEY\",\"machine_id\":\"$MACHINE_ID\",\"product_code\":\"IG-ID-01\"}")
+          
+          echo "=== תשובת השרת ==="
+          echo "$RESPONSE"
+          
+          # בדוק אם success
+          if echo "$RESPONSE" | grep -q '"success":true'; then
+            echo "✅ אקטיבציה הצליחה!"
+          elif echo "$RESPONSE" | grep -q '"success":false'; then
+            echo "❌ אקטיבציה נכשלה - מפתח לא מזוהה"
+          else
+            echo "⚠️ תשובה לא צפויה מהשרת"
+          fi
+
+      - name: "3 - בדוק גם עם MAC Address (fallback)"
+        run: |
+          MAC=$(ifconfig en0 | awk '/ether/{print $2}' | tr -d '[:space:]')
+          LICENSE_KEY="${{ github.event.inputs.license_key }}"
+          
+          echo "=== בודק עם MAC Address ==="
+          echo "MAC: $MAC"
+          
+          RESPONSE=$(curl -s -X POST \
+            "https://script.google.com/macros/s/AKfycbxKoNsJd-IYlsRuQVclZ6RvXVhxe8zGnNUdmX7mPCZKJLWAC5nx8QjvhYe_gJhTTLjhQw/exec" \
+            -H "Content-Type: application/json" \
+            -d "{\"license_key\":\"$LICENSE_KEY\",\"machine_id\":\"$MAC\",\"product_code\":\"IG-ID-01\"}")
+          
+          echo "=== תשובת השרת ==="
+          echo "$RESPONSE"
