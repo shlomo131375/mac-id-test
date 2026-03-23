@@ -1,0 +1,60 @@
+name: Test macOS Machine ID
+
+on:
+  workflow_dispatch: # מריץ ידנית מה-Actions tab
+
+jobs:
+  test-mac-id:
+    runs-on: macos-latest
+
+    steps:
+      - name: "1 - בדיקת ioreg (Hardware UUID)"
+        run: |
+          echo "=== ioreg UUID ==="
+          ioreg -d2 -c IOPlatformExpertDevice | awk -F\" '/IOPlatformUUID/{print $(NF-1)}'
+          echo "exit code: $?"
+
+      - name: "2 - בדיקת ifconfig en0 (MAC Address - fallback)"
+        run: |
+          echo "=== MAC Address (en0) ==="
+          ifconfig en0 | awk '/ether/{print $2}'
+          echo "exit code: $?"
+
+      - name: "3 - בדיקת ifconfig en1 (אם en0 לא קיים)"
+        run: |
+          echo "=== MAC Address (en1) ==="
+          ifconfig en1 | awk '/ether/{print $2}' || echo "en1 not available"
+
+      - name: "4 - כל הממשקים הזמינים"
+        run: |
+          echo "=== All network interfaces ==="
+          ifconfig -l
+
+      - name: "5 - macOS version"
+        run: |
+          echo "=== macOS Version ==="
+          sw_vers
+
+      - name: "6 - סימולציה של AppleScript (ioreg)"
+        run: |
+          echo "=== AppleScript simulation (same command InDesign runs) ==="
+          RESULT=$(ioreg -d2 -c IOPlatformExpertDevice | awk -F\" '/IOPlatformUUID/{print $(NF-1)}')
+          if [ -z "$RESULT" ]; then
+            echo "RESULT IS EMPTY - this is the bug!"
+          else
+            echo "UUID found: $RESULT"
+            # Remove whitespace (same as .replace(/\s/g, '') in JS)
+            CLEAN=$(echo "$RESULT" | tr -d '[:space:]')
+            echo "Cleaned UUID: $CLEAN"
+          fi
+
+      - name: "7 - סימולציה של AppleScript (ifconfig fallback)"
+        run: |
+          echo "=== AppleScript fallback simulation ==="
+          RESULT=$(ifconfig en0 | awk '/ether/{print $2}')
+          if [ -z "$RESULT" ]; then
+            echo "FALLBACK ALSO EMPTY - both methods failed!"
+          else
+            CLEAN=$(echo "$RESULT" | tr -d '[:space:]')
+            echo "MAC Address found: $CLEAN"
+          fi
