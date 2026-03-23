@@ -1,20 +1,20 @@
-name: mac-id-test
-on: [push] # ירוץ בכל פעם שתעלה קוד לגיטהאב
+name: macOS Logic Check
+on: [push]
 
 jobs:
-  check-macos-logic:
-    runs-on: macos-latest # כאן קורה הקסם - גיטהאב מקצה לך מחשב מק
+  run-test:
+    runs-on: macos-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Get Real macOS Machine ID
-        id: mac_id
+      - name: Get macOS UUID
+        id: get_id
         run: |
-          # הרצת הפקודה המדויקת מהסקריפט שלך
-          ID=$(ioreg -d2 -c IOPlatformExpertDevice | awk -F\" '/IOPlatformUUID/{print $(NF-1)}')
-          echo "MAC_ID=$ID" >> $GITHUB_ENV
-          echo "The ID found is: $ID"
+          # שליפת ה-UUID של המק כפי שעשית בסקריפט
+          UUID=$(ioreg -d2 -c IOPlatformExpertDevice | awk -F\" '/IOPlatformUUID/{print $(NF-1)}')
+          echo "MAC_ID=$UUID" >> $GITHUB_ENV
+          echo "Found UUID: $UUID"
 
-      - name: Run JS Logic Test
-        run: node test-logic.js # מריץ את הקובץ שהכנו בשלב 1
+      - name: Run Test Logic
+        run: node test-logic.js
