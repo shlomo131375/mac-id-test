@@ -18,18 +18,21 @@ jobs:
       - name: Run JS Logic Test
         run: node test-logic.js
 
-      - name: Connectivity Test (Google Apps Script)
+      - name: Test Google Apps Script Connectivity
         run: |
-          # שליחת בקשת דמה לשרת שלך כדי לראות אם הוא מגיב
+          echo "Sending test request to Google Apps Script..."
+          # שליחת בקשה ל-URL מהסקריפט שלך
           RESPONSE=$(curl -L -s -X POST -H "Content-Type: application/json" \
             -d '{"license_key":"TEST-KEY", "machine_id":"TEST-ID", "product_code":"IG-ID-01"}' \
             "https://script.google.com/macros/s/AKfycbxKoNsJd-IYlsRuQVclZ6RvXVhxe8zGnNUdmX7mPCZKJLWAC5nx8QjvhYe_gJhTTLjhQw/exec")
           
-          echo "Server Response: $RESPONSE"
+          echo "Full Server Response: $RESPONSE"
           
-          # בדיקה אם התקבלה תגובה שהיא JSON תקין
           if [[ $RESPONSE == *"success"* ]]; then
-            echo "✅ Server is responding correctly!"
+            echo "✅ Google Apps Script is online and responding with JSON!"
+          elif [[ -z "$RESPONSE" ]]; then
+            echo "❌ Error: No response from Google Apps Script. Check URL or Permissions."
+            exit 1
           else
-            echo "⚠️ Server responded, but not with a standard success/fail JSON. Check your Apps Script logs."
+            echo "⚠️ Server responded, but not with a success message. Check your Apps Script code."
           fi
