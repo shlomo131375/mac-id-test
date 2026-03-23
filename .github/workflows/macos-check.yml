@@ -1,4 +1,4 @@
-name: macOS Script Validation
+name: mac-id-test
 on: [push] # ירוץ בכל פעם שתעלה קוד לגיטהאב
 
 jobs:
