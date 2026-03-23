@@ -1,0 +1,20 @@
+name: macOS Script Validation
+on: [push] # ירוץ בכל פעם שתעלה קוד לגיטהאב
+
+jobs:
+  check-macos-logic:
+    runs-on: macos-latest # כאן קורה הקסם - גיטהאב מקצה לך מחשב מק
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Get Real macOS Machine ID
+        id: mac_id
+        run: |
+          # הרצת הפקודה המדויקת מהסקריפט שלך
+          ID=$(ioreg -d2 -c IOPlatformExpertDevice | awk -F\" '/IOPlatformUUID/{print $(NF-1)}')
+          echo "MAC_ID=$ID" >> $GITHUB_ENV
+          echo "The ID found is: $ID"
+
+      - name: Run JS Logic Test
+        run: node test-logic.js # מריץ את הקובץ שהכנו בשלב 1
