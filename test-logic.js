@@ -1,10 +1,10 @@
-// --- העתקה של פונקציית ה-sha256 מהסקריפט שלך ---
+// פונקציית ה-SHA256 מהסקריפט שלך
 var sha256 = (function(){
     var i = 0, j = 0, primes = [], max = 311;
     for (i = 2; i < max; i++) {
         var isPrime = true;
-        for (j = 2; j < i; j++) { if (i % j === 0) { isPrime = false; } }
-        if (isPrime) { primes.push(i); }
+        for (j = 2; j < i; j++) { if (i % j === 0) isPrime = false; }
+        if (isPrime) primes.push(i);
     }
     function frac(x) { return (x - Math.floor(x)) * 4294967296; }
     var k = primes.map(function (p) { return frac(Math.pow(p, 1/3)); });
@@ -13,7 +13,7 @@ var sha256 = (function(){
     return function (m) {
         var i, j, h = h0.slice(0), words = [], m_len = m.length * 8;
         m += String.fromCharCode(0x80);
-        while ((m.length % 64) !== 56) { m += String.fromCharCode(0); }
+        while ((m.length % 64) !== 56) m += String.fromCharCode(0);
         for (i = 0; i < m.length; i+=4) {
             words.push((m.charCodeAt(i) << 24) | (m.charCodeAt(i+1) << 16) | (m.charCodeAt(i+2) << 8) | m.charCodeAt(i+3));
         }
@@ -38,39 +38,24 @@ var sha256 = (function(){
     };
 })();
 
-// --- קבועים מהסקריפט המקורי ---
-var SECRET_SALT = "4815162342"; //
-var PRODUCT_CODE = "IG-ID-01"; //
+// נתונים מהסקריפט המקורי
+var SECRET_SALT = "4815162342";
+var PRODUCT_CODE = "IG-ID-01";
 
-// --- לוגיקת הבדיקה ---
-function runMacTest() {
-    console.log("--- Starting macOS Logic Test ---");
-    
-    // 1. קבלת ה-Machine ID מהסביבה (יועבר ע"י ה-Action)
-    var machineId = process.env.MAC_ID || "NO_ID_FOUND";
-    var testLicense = "ABC-123-TEST";
+var machineId = process.env.MAC_ID || "DEVELOPMENT_ID";
+var testLicense = "MY-TEST-LICENSE-123";
 
-    console.log("Detected Machine ID: " + machineId);
+// יצירת חתימה ובדיקת תקינות
+var signature = sha256(testLicense + machineId + SECRET_SALT);
 
-    // 2. בדיקת יצירת חתימה (Signature)
-    var signature = sha256(testLicense + machineId + SECRET_SALT);
-    console.log("Generated Signature: " + signature);
+console.log("--- TEST RESULTS ---");
+console.log("Machine ID: " + machineId);
+console.log("Signature: " + signature);
+console.log("Payload: " + JSON.stringify({license: testLicense, id: machineId, product: PRODUCT_CODE}));
 
-    // 3. בדיקת מבנה ה-JSON שנשלח לשרת
-    var payload = {
-        license_key: testLicense,
-        machine_id: machineId,
-        product_code: PRODUCT_CODE
-    };
-    
-    console.log("JSON Payload: " + JSON.stringify(payload));
-
-    if (signature.length === 64) {
-        console.log("✅ Success: Signature logic is valid on macOS.");
-    } else {
-        console.error("❌ Error: Invalid signature length.");
-        process.exit(1);
-    }
+if (signature.length === 64) {
+    console.log("✅ Logic is valid!");
+} else {
+    console.log("❌ Signature failed.");
+    process.exit(1);
 }
-
-runMacTest();
